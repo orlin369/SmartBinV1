@@ -29,23 +29,24 @@ SOFTWARE.
 /** @brief Application configuration. */
 #include "ApplicationConfiguration.h"
 
-/** @brief Bin state library. */
-#include "BinState.h"
-
 /** @brief Servo control library. */
 #include <Servo.h>
 
 /** @brief Button denounce library. */
 #include <ButtonDebounce.h>
 
+/** @brief HCSR-04 ultrasonic sensor. */
 #include <Ultrasonic.h>
 
 #ifdef  LORA_INTERFACE
 
+/** @brief IBM TTN library. */
 #include <lmic.h>
 
+/** @brief HopeRF HAL drivers library. */
 #include <hal/hal.h>
 
+/** @brief SPI drivers library. */
 #include <SPI.h>
 
 #endif //  LORA_INTERFACE
@@ -278,18 +279,24 @@ void setup()
 	// configures the minimal channel set.
 	// NA-US channels 0-71 are configured automatically
 	LMIC_setupChannel(0, 868100000, DR_RANGE_MAP(DR_SF12, DR_SF7), BAND_CENTI);      // g-band
-	LMIC_setupChannel(1, 868300000, DR_RANGE_MAP(DR_SF12, DR_SF7B), BAND_CENTI);      // g-band
-	LMIC_setupChannel(2, 868500000, DR_RANGE_MAP(DR_SF12, DR_SF7), BAND_CENTI);      // g-band
-	LMIC_setupChannel(3, 867100000, DR_RANGE_MAP(DR_SF12, DR_SF7), BAND_CENTI);      // g-band
-	LMIC_setupChannel(4, 867300000, DR_RANGE_MAP(DR_SF12, DR_SF7), BAND_CENTI);      // g-band
-	LMIC_setupChannel(5, 867500000, DR_RANGE_MAP(DR_SF12, DR_SF7), BAND_CENTI);      // g-band
-	LMIC_setupChannel(6, 867700000, DR_RANGE_MAP(DR_SF12, DR_SF7), BAND_CENTI);      // g-band
-	LMIC_setupChannel(7, 867900000, DR_RANGE_MAP(DR_SF12, DR_SF7), BAND_CENTI);      // g-band
-	LMIC_setupChannel(8, 868800000, DR_RANGE_MAP(DR_FSK, DR_FSK), BAND_MILLI);      // g2-band
-																					// TTN defines an additional channel at 869.525Mhz using SF9 for class B
-																					// devices' ping slots. LMIC does not have an easy way to define set this
-																					// frequency and support for class B is spotty and untested, so this
-																					// frequency is not configured here.
+	//LMIC_setupChannel(1, 868300000, DR_RANGE_MAP(DR_SF12, DR_SF7B), BAND_CENTI);     // g-band
+	//LMIC_setupChannel(2, 868500000, DR_RANGE_MAP(DR_SF12, DR_SF7), BAND_CENTI);      // g-band
+	//LMIC_setupChannel(3, 867100000, DR_RANGE_MAP(DR_SF12, DR_SF7), BAND_CENTI);      // g-band
+	//LMIC_setupChannel(4, 867300000, DR_RANGE_MAP(DR_SF12, DR_SF7), BAND_CENTI);      // g-band
+	//LMIC_setupChannel(5, 867500000, DR_RANGE_MAP(DR_SF12, DR_SF7), BAND_CENTI);      // g-band
+	//LMIC_setupChannel(6, 867700000, DR_RANGE_MAP(DR_SF12, DR_SF7), BAND_CENTI);      // g-band
+	//LMIC_setupChannel(7, 867900000, DR_RANGE_MAP(DR_SF12, DR_SF7), BAND_CENTI);      // g-band
+	//LMIC_setupChannel(8, 868800000, DR_RANGE_MAP(DR_FSK, DR_FSK), BAND_MILLI);       // g2-band
+
+	// .
+	LMIC_disableChannel(1);
+	LMIC_disableChannel(2);
+
+	// TTN defines an additional channel at 869.525Mhz using SF9 for class B
+	// devices' ping slots. LMIC does not have an easy way to define set this
+	// frequency and support for class B is spotty and untested, so this
+	// frequency is not configured here.
+
 #elif defined(CFG_us915)
 	// NA-US channels 0-71 are configured automatically
 	// but only one group of 8 should (a subband) should be active
@@ -534,9 +541,6 @@ void run_app()
 				{
 					if (LidOpenFlag_g == false)
 					{
-						// Clear debounce time.
-						IncomingTrashDebonce_g = 0;
-
 						// Open the lid.
 						open_lid();
 
@@ -544,6 +548,11 @@ void run_app()
 						LidOpeningCount_g++;
 					}
 				}
+			}
+			else
+			{
+				// Clear debounce time.
+				IncomingTrashDebonce_g = 0;
 			}
 		}
 
@@ -601,36 +610,21 @@ double read_trash_value()
 {
 	// Read ADC.
 	uint16_t SensorValueL = analogRead(PIN_BIN_TRASH_SENSOR);
+	
+	//Serial.print("Sensor ");
+	//Serial.println(SensorValueL);
 
-	//
-	SensorValueL = (uint16_t)constrain(SensorValueL, 0, 675);
-
-	// Scale it because it is power on 3.3V.
-	SensorValueL = (uint16_t)map(SensorValueL, 0, 675, 0, 1023);
-
-	//
-	SensorValueL = (uint16_t)constrain(SensorValueL, 0, 1023);
+	// Constraint sensor value.
+	SensorValueL = (uint16_t)constrain(SensorValueL, 103, 311);
 
 	// Scale to percentage.
-	SensorValueL = (uint16_t)map(SensorValueL, 20, 300, 0, 100);
+	SensorValueL = (uint16_t)map(SensorValueL, 103, 311, 0, 100);
 
 	// Constraint percentage value.
 	double PercentageTrashValueL = constrain(SensorValueL, 0, 100);
 
 	// Return the value.
 	return PercentageTrashValueL;
-
-	// Convert ADC value to distance.
-	//double DistanceL = 187754 * pow(SensorValueL, -1.51);
-	//
-	//// Constraint the value.
-	//double PercentageTrashValueL = constrain(DistanceL, MINIMUM_TRASH_DISTANCE, MAXIMUM_TRASH_DISTANCE);
-	//
-	//// Change the value to percentage.
-	//PercentageTrashValueL = map(PercentageTrashValueL, MAXIMUM_TRASH_DISTANCE, MINIMUM_TRASH_DISTANCE, 0, 100);
-	//
-	//// Return the distance.
-	//return PercentageTrashValueL;
 }
 
 /** @brief Lid recycle callback.

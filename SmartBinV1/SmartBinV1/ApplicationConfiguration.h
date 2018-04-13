@@ -87,7 +87,7 @@ SOFTWARE.
 #ifdef LORA_INTERFACE
 
 /** @brief Schedule TX every this many seconds (might become longer due to duty cycle limitations). */
-#define TX_INTERVAL 60UL
+#define TX_INTERVAL 10UL
 
 #endif // LORA_INTERFACE
 
