@@ -494,7 +494,7 @@ void run_app()
 		if (PercentageTrashLevel_g < 100)
 		{
 			// Wait for incoming trash.
-			if (IncomingTrashDistance_g <= TRASH_INCOMMING_DISTANCE)
+			if (IncomingTrashDistance_g <= TRASH_INCOMING_DISTANCE)
 			{
 				IncomingTrashDebone_g++;
 

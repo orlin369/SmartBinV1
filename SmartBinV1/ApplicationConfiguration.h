@@ -54,7 +54,7 @@ SOFTWARE.
 /** @brief LED pin that correspond to status LED. */
 #define PIN_STATUS_LED 13
 
-/** @brief Digital sensors debonnce time [ms]. */
+/** @brief Digital sensors debounce time [ms]. */
 #define BTN_DEBOUNCE_TIME 200
 
 /** @brief Lid open position [deg]. */
@@ -64,7 +64,7 @@ SOFTWARE.
 #define LID_CLOSE_POSITION 50
 
 /** @brief Trash incoming distance [cm]. */
-#define TRASH_INCOMMING_DISTANCE 25
+#define TRASH_INCOMING_DISTANCE 25
 
 /** @brief Open debounce time [ms]. */
 #define OPEN_DEBOUNCE_TIME 200
