@@ -33,7 +33,7 @@ SOFTWARE.
 #include <Servo.h>
 
 /** @brief Button denounce library. */
-#include <ButtonDebounce.h>
+#include <Button.h>
 
 /** @brief HCSR-04 ultrasonic sensor. */
 #include <Ultrasonic.h>
@@ -119,18 +119,6 @@ void os_getDevKey(u1_t* buf);
 
 #endif
 
-/** @brief Lid sensor callback.
- *  @param state, sensor state [LOW : HIGH]
- *  @return Void.
- */
-void LidSensor_callback(int state);
-
-/** @brief Lid recycle callback.
- *  @param state, sensor state [LOW : HIGH]
- *  @return Void.
- */
-void LidRecycleSensor_callback(int state);
-
 /** @brief Run trough application logic.
  *  @return Void.
  */
@@ -170,7 +158,7 @@ static uint8_t BinStateMessage_g[7] = {1, 2, 3, 4, 5, 6, 0};
 static osjob_t SendJob_g;
 
 #endif
-uint8_t IncomingTrashDebonce_g = 0;
+uint8_t IncomingTrashDebone_g = 0;
 
 /** @brief Bin locked/unlocked flag. */
 uint8_t RecycleSensorFlag_g = false;
@@ -185,7 +173,7 @@ uint8_t  PercentageTrashLevel_g = 0;
 uint16_t LidOpeningCount_g = 0;
 
 /** @brief Incoming trash distance in [cm]. */
-long IncomingTrashDistance_g = 0;
+unsigned int IncomingTrashDistance_g = 0;
 
 /** @brief Lid open flag. true = open, false = close. */
 bool LidOpenFlag_g = false;
@@ -197,10 +185,10 @@ bool LidSensorFlag_g = false;
 Servo ServoLid_g;
 
 /** @brief Lid sensor. */
-ButtonDebounce LidSensor_g(PIN_BIN_LID, BTN_DEBOUNCE_TIME);
+Button LidSensor_g(PIN_BIN_LID, BTN_DEBOUNCE_TIME);
 
 /** @brief Lid recycle sensor. */
-ButtonDebounce LidRecycleSensor_g(PIN_RECYCLE_SENSOR, BTN_DEBOUNCE_TIME);
+Button LidRecycleSensor_g(PIN_RECYCLE_SENSOR, BTN_DEBOUNCE_TIME);
 
 /** @brief Incoming trash sensor. */
 Ultrasonic IncomingTrashSensor_g(PIN_US_TRIG, PIN_US_ECHO);
@@ -223,14 +211,6 @@ void setup()
 	// Setup the status LED.
 	//pinMode(PIN_STATUS_LED, OUTPUT);
 	//digitalWrite(PIN_STATUS_LED, HIGH);
-
-	// Setup pins and callback for recycling sensor.
-	pinMode(PIN_RECYCLE_SENSOR, INPUT_PULLUP);
-	LidRecycleSensor_g.setCallback(LidRecycleSensor_callback);
-
-	// Setup pins and callback for lid open/close sensor.
-	pinMode(PIN_BIN_LID, INPUT_PULLUP);
-	LidSensor_g.setCallback(LidSensor_callback);
 
 	// Set default battery level.
 	PercentageBatteryLevel_g = 100;
@@ -478,24 +458,6 @@ void os_getDevKey(u1_t* buf) { }
 
 #endif
 
-/** @brief Lid sensor callback.
- *  @param state, sensor state [LOW : HIGH]
- *  @return Void.
- */
-void LidSensor_callback(int state)
-{
-	LidSensorFlag_g = (state == LOW);
-}
-
-/** @brief Lid recycle callback.
- *  @param state, sensor state [LOW : HIGH]
- *  @return Void.
- */
-void LidRecycleSensor_callback(int state)
-{
-	RecycleSensorFlag_g = (state == HIGH);
-}
-
 /** @brief Run trough application logic.
  *  @return Void.
  */
@@ -506,17 +468,16 @@ void run_app()
 	static unsigned long CurrentMillisL = 0, PreviousMillisL = 0;
 	
 	// Update recycle sensor.
-	LidRecycleSensor_g.update();
+	RecycleSensorFlag_g = (LidRecycleSensor_g.pressed() == HIGH);
 
 	// Update lid sensor states.
-	LidSensor_g.update();
+	LidSensorFlag_g = (LidSensor_g.pressed() == LOW);
 
 	// Update sensor only if the lid is closed.
 	if (LidOpenFlag_g == false)
 	{
 		// Measure incoming trash value.
-		microsec = IncomingTrashSensor_g.timing();
-		IncomingTrashDistance_g = IncomingTrashSensor_g.convert(microsec, Ultrasonic::CM);
+		IncomingTrashDistance_g = IncomingTrashSensor_g.read();
 	}
 
 	// Update trash value only if lid is closed.
@@ -535,9 +496,9 @@ void run_app()
 			// Wait for incoming trash.
 			if (IncomingTrashDistance_g <= TRASH_INCOMMING_DISTANCE)
 			{
-				IncomingTrashDebonce_g++;
+				IncomingTrashDebone_g++;
 
-				if (IncomingTrashDebonce_g > OPEN_DEBOUNCE_TIME)
+				if (IncomingTrashDebone_g > OPEN_DEBOUNCE_TIME)
 				{
 					if (LidOpenFlag_g == false)
 					{
@@ -552,7 +513,7 @@ void run_app()
 			else
 			{
 				// Clear debounce time.
-				IncomingTrashDebonce_g = 0;
+				IncomingTrashDebone_g = 0;
 			}
 		}
 
